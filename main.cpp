@@ -2,6 +2,10 @@
 #include <iostream>
 #include <numeric>
 #include <random>
+#include <numeric>
+
+// #include <cuda_runtime_api.h>
+// #include <cuda.h>
 
 auto simulate_path(double initial_stock_price, double time_to_maturity_years,
                    double risk_free_rate, double volatility,
