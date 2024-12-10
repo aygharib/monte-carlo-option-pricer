@@ -1,34 +1,9 @@
-// #include <iostream>
-
-// __global__ void test(float* A_d) {
-//     A_d[0] = 1.0F;
-// }
-
-// auto main() -> int {
-//     float* A_d;
-//     int size = 3 * sizeof(float);
-//     cudaMalloc((void**) &A_d, size);
-
-//     test<<<1, 3>>>(A_d);
-//     cudaDeviceSynchronize();
-
-//     float outputs[3];
-//     cudaMemcpy(&outputs, A_d, size, cudaMemcpyDeviceToHost);
-
-//     std::cout << "outputs[0] = " << outputs[0] << '\n';
-
-//     cudaFree(A_d);
-// }
-
-
-
 #include <iostream>
 #include <cuda_runtime.h>
 
 void CUDA_CHECK(cudaError_t err) {
     if (err != cudaSuccess) {
-        printf("%s in %s at line %d \n", cudaGetErrorString(err), __FILE__,
-               __LINE__);
+        printf("%s in %s at line %d \n", cudaGetErrorString(err), __FILE__, __LINE__);
         exit(EXIT_FAILURE);
     }
 }
@@ -43,14 +18,15 @@ __global__ void test(float* A_d, int size) {
 }
 
 auto main() -> int {
-    // float* A_d;
-    float A_d[] = {0.0F, 0.0F, 0.0F};
-    int num_elements = 3; // 3 elements to fill
+    float* A_d;
+    // float A_d[] = {0.0F, 0.0F, 0.0F};
+    int const num_elements = 3; // 3 elements to fill
     int size = num_elements * sizeof(float);
 
     auto* A_d_ptr = &A_d;
     // Allocate memory on the device
     auto err_a = cudaMalloc((void**) &A_d, size);
+    printf("a");
     CUDA_CHECK(err_a);
 
     // Launch the kernel with 3 threads
@@ -62,6 +38,7 @@ auto main() -> int {
     // Copy data from device to host
     float outputs[num_elements];
     auto err_b = cudaMemcpy(outputs, A_d, size, cudaMemcpyDeviceToHost);
+    printf("b");
     CUDA_CHECK(err_b);
 
     std::cout << "outputs[0] = " << outputs[0] << '\n';
