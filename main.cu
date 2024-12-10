@@ -14,11 +14,11 @@ __global__ void initCurandStates(curandState* states, unsigned long seed) {
 __global__ void
 monte_carlo_kernel(float* A_d, double strike_price, double initial_stock_price,
                    double time_to_maturity_years, double risk_free_rate,
-                   double volatility, double number_of_time_steps_per_path,
+                   double volatility, double number_of_simulations, double number_of_time_steps_per_path,
                    double simulations_per_thread, // (1000000/22528)
                    unsigned long seed, curandState* states) {
     auto thread_id = threadIdx.x + blockDim.x * blockIdx.x;
-    if (thread_id >= 1'000'000)
+    if (thread_id >= number_of_simulations)
         return;
 
     auto local_state = states[thread_id];
@@ -48,11 +48,11 @@ monte_carlo_kernel(float* A_d, double strike_price, double initial_stock_price,
             (risk_free_rate - 0.5 * volatility * volatility) * delta_t +
             volatility * std::sqrt(delta_t) * random_normal_variable);
 
-        if (thread_id == 0 && i < 5) { // Debugging only thread 0, first 5 steps
-            printf("Step %d: random_normal_variable = %f, simulated_price_at_t "
-                   "= %f\n",
-                   i, random_normal_variable, simulated_price_at_t);
-        }
+        // if (thread_id == 0 && i < 5) { // Debugging only thread 0, first 5 steps
+        //     printf("Step %d: random_normal_variable = %f, simulated_price_at_t "
+        //            "= %f\n",
+        //            i, random_normal_variable, simulated_price_at_t);
+        // }
     }
 
     auto payoff = max(simulated_price_at_t - strike_price, 0.0);
@@ -76,17 +76,17 @@ auto main() -> int {
     auto risk_free_rate = 0.05;
     auto volatility = 0.2;
     // auto const number_of_simulations = 1'000'000;
-    auto const number_of_simulations = 64;
+    // auto const number_of_simulations = 2^15;
+    auto const number_of_simulations = 1 << 17;
     auto number_of_time_steps_per_path = 100;
-    std::cout << "hello world\n";
-
-    cudaDeviceProp prop;
-    cudaGetDeviceProperties(&prop, 0);
-    std::cout << "Max threads per block: " << prop.maxThreadsPerBlock
-              << std::endl;
-    std::cout << "SM count: " << prop.multiProcessorCount << std::endl;
-    std::cout << "Max threads per SM: " << prop.maxThreadsPerMultiProcessor
-              << std::endl;
+    
+    // cudaDeviceProp prop;
+    // cudaGetDeviceProperties(&prop, 0);
+    // std::cout << "Max threads per block: " << prop.maxThreadsPerBlock
+    //           << std::endl;
+    // std::cout << "SM count: " << prop.multiProcessorCount << std::endl;
+    // std::cout << "Max threads per SM: " << prop.maxThreadsPerMultiProcessor
+    //           << std::endl;
 
 
     auto start = std::chrono::high_resolution_clock::now();
@@ -94,23 +94,24 @@ auto main() -> int {
     // threads per block, choose a multiple of the warp size (warp size = 32
     // threads) for efficiency
 
-    auto threads_per_block = prop.maxThreadsPerBlock;
+    // auto threads_per_block = prop.maxThreadsPerBlock;
+    auto threads_per_block = 1024;
     // auto total_threads = 1'000'000;
     auto blocks = static_cast<int>(std::ceil(
         static_cast<double>(number_of_simulations) / threads_per_block));
 
-    std::cout << blocks << '\n';
+    // std::cout << blocks << '\n';
 
     float* A_d;
     int size = number_of_simulations * sizeof(float);
     auto error_a = cudaMalloc((void**) &A_d, size);
-    std::cout << "a\n";
+    // std::cout << "a\n";
     CUDA_CHECK(error_a);
 
     curandState* d_states;
     auto err_b = cudaMalloc((void**) &d_states,
                             number_of_simulations * sizeof(curandState));
-                            std::cout << "b\n";
+    // std::cout << "b\n";
     CUDA_CHECK(err_b);
 
     initCurandStates<<<blocks, threads_per_block>>>(d_states, time(NULL));
@@ -121,38 +122,37 @@ auto main() -> int {
     // monte_carlo_kernel<<<1, 5>>>(
     A_d, strike_price, initial_stock_price,
                                  time_to_maturity_years, risk_free_rate,
-                                 volatility, number_of_time_steps_per_path, 1,
+                                 volatility, number_of_simulations, number_of_time_steps_per_path, 1,
                                  time(NULL), d_states);
     cudaDeviceSynchronize();
 
     float outputs[number_of_simulations];
     // float outputs[5];
     // cudaMemcpy(&outputs, A_d, sizeof(float), cudaMemcpyDeviceToHost);
-    // auto err_c = 
-    cudaMemcpy(&outputs, A_d, size, cudaMemcpyDeviceToHost);
+     auto err_c = cudaMemcpy(&outputs, A_d, size, cudaMemcpyDeviceToHost);
     // std::cout << "c\n";
-    // CUDA_CHECK(err_c);
+    CUDA_CHECK(err_c);
 
     // std::cout << "outputs[0] = " << outputs[0] << '\n';
-    for (int i = 0; i < 25; i++) {
-        std::cout << "outputs[" << i << "] = " << outputs[i] << '\n';
-    }
+    // for (int i = 0; i < 25; i++) {
+    //     std::cout << "outputs[" << i << "] = " << outputs[i] << '\n';
+    // }
 
-    // auto average_payoff =
-    //     std::accumulate(outputs, outputs + number_of_simulations, 0.0F) /
-    //     number_of_simulations;
-    // // std::cout << "average payoff: " << average_payoff << '\n';
+    auto average_payoff =
+        std::accumulate(outputs, outputs + number_of_simulations, 0.0F) /
+        number_of_simulations;
+    // std::cout << "average payoff: " << average_payoff << '\n';
 
-    // auto discounted_present_value =
-    //     std::exp(-risk_free_rate * time_to_maturity_years) * average_payoff;
-    // // 1024 threads / SM * 22 SM's = 22,528 threads can be in flight at once
+    auto discounted_present_value =
+        std::exp(-risk_free_rate * time_to_maturity_years) * average_payoff;
+    // 1024 threads / SM * 22 SM's = 22,528 threads can be in flight at once
 
-    // auto end = std::chrono::high_resolution_clock::now();
-    // auto duration = end - start;
-    // std::cout << "Monte Carlo European Call Option Price: "
-    //           << discounted_present_value << std::endl;
-    // std::cout << "Execution time (ms): "
-    //           << std::chrono::duration_cast<std::chrono::milliseconds>(duration)
-    //                  .count()
-    //           << '\n';
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = end - start;
+    std::cout << "Monte Carlo European Call Option Price: "
+              << discounted_present_value << std::endl;
+    std::cout << "Execution time (ms): "
+              << std::chrono::duration_cast<std::chrono::milliseconds>(duration)
+                     .count()
+              << '\n';
 }
