@@ -14,7 +14,8 @@ __global__ void initCurandStates(curandState* states, unsigned long seed) {
 __global__ void
 monte_carlo_kernel(float* A_d, double strike_price, double initial_stock_price,
                    double time_to_maturity_years, double risk_free_rate,
-                   double volatility, double number_of_simulations, double number_of_time_steps_per_path,
+                   double volatility, double number_of_simulations,
+                   double number_of_time_steps_per_path,
                    double simulations_per_thread, // (1000000/22528)
                    unsigned long seed, curandState* states) {
     auto thread_id = threadIdx.x + blockDim.x * blockIdx.x;
@@ -92,10 +93,9 @@ auto main() -> int {
     cudaDeviceSynchronize();
 
     monte_carlo_kernel<<<blocks, threads_per_block>>>(
-    A_d, strike_price, initial_stock_price,
-                                 time_to_maturity_years, risk_free_rate,
-                                 volatility, number_of_simulations, number_of_time_steps_per_path, 1,
-                                 time(NULL), d_states);
+        A_d, strike_price, initial_stock_price, time_to_maturity_years,
+        risk_free_rate, volatility, number_of_simulations,
+        number_of_time_steps_per_path, 1, time(NULL), d_states);
     cudaDeviceSynchronize();
 
     float outputs[number_of_simulations];
