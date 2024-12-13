@@ -2,10 +2,6 @@
 #include <iostream>
 #include <numeric>
 #include <random>
-#include <numeric>
-
-// #include <cuda_runtime_api.h>
-// #include <cuda.h>
 
 auto simulate_path(double initial_stock_price, double time_to_maturity_years,
                    double risk_free_rate, double volatility,
@@ -78,6 +74,7 @@ auto main() -> int {
     auto time_to_maturity_years = 1.0;
     auto risk_free_rate = 0.05;
     auto volatility = 0.2;
+    // auto number_of_simulations = 1 << 17;
     auto number_of_simulations = 1'000'000;
     auto number_of_time_steps_per_path = 100;
 
@@ -91,7 +88,7 @@ auto main() -> int {
 
     std::cout << "Monte Carlo European Call Option Price: " << call_price
               << std::endl;
-    std::cout << "Execution time (ms): "
+    std::cout << "CPU Execution time (ms): "
               << std::chrono::duration_cast<std::chrono::milliseconds>(duration)
                      .count()
               << '\n';
