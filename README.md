@@ -1,6 +1,27 @@
 # Monte Carlo Options Pricer
 This application prices options for a given commodity.
 
+## Build Instrucitons
+### Docker
+Build Docker container:
+`sudo docker build -t cuda-dev-env .`
+
+Attach to container:
+`sudo docker run -it --gpus all -v ~/dev/monte-carlo-option-pricer:/workspace cuda-dev-env`
+
+Build program:
+`xmake --root`
+
+Run program:
+`xmake run --root`
+
+### Local
+Build program:
+`xmake`
+
+Run program:
+`xmake run`
+
 ## Everything to know about options
 ### What is an option?
 An **option** is a contract that gives the holder the **right**, but not the **obligation**, to buy or sell something (usually a stock) at a specified price (called the **strike price**) before or on a certain date. **Call options** represent the right to buy a stock at the strike price, and **put options** are the right to sell at the strike price. Options are useful as they provide a way for risk management and speculation, and users are willing to pay for this flexibility.

@@ -1,4 +1,16 @@
+# Build files
 *.out
 *.exe
 *.exp
 *.lib
+
+# Xmake cache
+.xmake/
+.cache/
+build/
+
+# MacOS Cache
+.DS_Store
+
+# Compilation database
+compile_commands.json

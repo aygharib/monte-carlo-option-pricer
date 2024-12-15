@@ -73,7 +73,7 @@ auto main() -> int {
     auto time_to_maturity_years = 1.0;
     auto risk_free_rate = 0.05;
     auto volatility = 0.2;
-    
+
     // auto initial_stock_price = 100000.0;
     // auto strike_price = 100000.0;
     // auto time_to_maturity_years = 5.0;
