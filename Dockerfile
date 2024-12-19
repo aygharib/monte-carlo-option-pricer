@@ -8,6 +8,9 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     python3 \
     python3-pip \
+    neovim \
+    zip \
+    unzip \
     && curl -fsSL https://xmake.io/shget.text | bash \
     && rm -rf /var/lib/apt/lists/*
 

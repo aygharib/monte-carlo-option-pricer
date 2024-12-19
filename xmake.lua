@@ -1,13 +1,20 @@
 add_rules("mode.debug", "mode.release")
 
-set_languages("c++23")
+set_languages("c++20")
+add_cxxflags("-std=c++20")
 
+add_requires("fmt")
 add_requires("conan::cuda-api-wrappers/0.7.0-b2", { alias = "cuda-api-wrappers", system = false })
 
 target("monte-carlo-option-pricer")
 set_kind("binary")
 -- add_files("src/*.cpp")
 add_files("src/*.cu")
+add_packages("fmt", "cuda-api-wrappers")
+-- generate SASS code for SM architecture of current host
+add_cugencodes("native")
+add_links("cuda")
+-- set_toolchains("clang++")
 -- add_includedirs("headers")
 
 -- on_load(function (target)
@@ -46,9 +53,7 @@ add_files("src/*.cu")
 --     print("hello3")
 -- end
 
--- generate SASS code for SM architecture of current host
-add_cugencodes("native")
-add_links("cuda")
+
 -- -- generate PTX code for the virtual architecture to guarantee compatibility
 -- add_cugencodes("compute_30")
-add_packages("cuda-api-wrappers")
+
